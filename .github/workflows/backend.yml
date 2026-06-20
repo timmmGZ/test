@@ -157,19 +157,47 @@ jobs:
           echo "验证场馆数据..."
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM venues;" --json
       
-      # 9. 部署云函数
-      - name: Deploy to CloudBase
+      # 9. 创建 cloudbaserc.json 配置文件
+      - name: Create CloudBase config
         run: |
-          tcb fn deploy gymcn-backend \
-            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
-            --runtime Java17 \
-            --memorySize 256 \
-            --timeout 60 \
-            --handler "com.gymcn.GymcnApplication::main" \
-            --code ./backend/target/gymcn-backend.jar \
-            --envVars "{\"POSTGRES_HOST\":\"${{ secrets.PsOSTGRES_HOST }}\",\"POSTGRES_PORT\":\"${{ secrets.POSTGRES_PORT }}\",\"POSTGRES_DATABASE\":\"${{ secrets.POSTGRES_DATABASE }}\",\"POSTGRES_USER\":\"${{ secrets.POSTGRES_USER }}\",\"POSTGRES_PASSWORD\":\"${{ secrets.POSTGRES_PASSWORD }}\"}"
+          cat > cloudbaserc.json << 'EOF'
+          {
+            "envId": "${{ secrets.CLOUDBASE_ENV_ID }}",
+            "framework": {
+              "plugins": {
+                "function": {
+                  "use": "@cloudbase/framework-plugin-function",
+                  "inputs": {
+                    "functionRootPath": "./backend",
+                    "functions": [
+                      {
+                        "name": "gymcn-backend",
+                        "handler": "com.gymcn.GymcnApplication::main",
+                        "timeout": 60,
+                        "memorySize": 256,
+                        "runtime": "Java8",
+                        "functionDistPath": "./target/gymcn-backend.jar",
+                        "envVariables": {
+                          "POSTGRES_HOST": "${{ secrets.POSTGRES_HOST }}",
+                          "POSTGRES_PORT": "${{ secrets.POSTGRES_PORT }}",
+                          "POSTGRES_DATABASE": "${{ secrets.POSTGRES_DATABASE }}",
+                          "POSTGRES_USER": "${{ secrets.POSTGRES_USER }}",
+                          "POSTGRES_PASSWORD": "${{ secrets.POSTGRES_PASSWORD }}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+          EOF
       
-      # 10. 输出部署结果
+      # 10. 部署云函数
+      - name: Deploy to CloudBase
+        run: cloudbase framework deploy --template cloudbaserc.json
+      
+      # 11. 输出部署结果
       - name: Show deployment result
         run: |
           echo "云函数部署完成！"
