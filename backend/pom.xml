@@ -31,14 +31,6 @@
         <spring-cloud-function.version>4.1.0</spring-cloud-function.version>
     </properties>
 
-    <!-- 腾讯云 Maven 仓库 -->
-    <repositories>
-        <repository>
-            <id>tencent</id>
-            <name>Tencent Cloud Maven Repository</name>
-            <url>https://mirrors.cloud.tencent.com/repository/maven/</url>
-        </repository>
-    </repositories>
 
     <!-- 依赖 -->
     <dependencies>
@@ -93,15 +85,6 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-function-context</artifactId>
             <version>${spring-cloud-function.version}</version>
-        </dependency>
-
-        <!-- CloudBase 认证 SDK（可选，用于访问其他云资源） -->
-        <dependency>
-            <groupId>com.tencentcloudapi</groupId>
-            <artifactId>tencentcloud-sdk-java-cloudbase</artifactId>
-            <version>3.1.699</version>
-            <!-- 不打包到最终 jar，避免冲突 -->
-            <optional>true</optional>
         </dependency>
 
         <!-- 测试 -->
