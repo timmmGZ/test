@@ -31,6 +31,15 @@
         <spring-cloud-function.version>4.1.0</spring-cloud-function.version>
     </properties>
 
+    <!-- 腾讯云 Maven 仓库 -->
+    <repositories>
+        <repository>
+            <id>tencent</id>
+            <name>Tencent Cloud Maven Repository</name>
+            <url>https://mirrors.cloud.tencent.com/repository/maven/</url>
+        </repository>
+    </repositories>
+
     <!-- 依赖 -->
     <dependencies>
         <!-- Spring Boot Web -->
