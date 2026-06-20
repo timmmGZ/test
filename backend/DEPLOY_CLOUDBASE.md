@@ -56,22 +56,32 @@
 
 ---
 
-## 步骤3：初始化数据库
+## 步骤3：初始化数据库（CloudBase CLI 自动）
 
-1. 使用 psql 或 pgAdmin 连接数据库：
-   ```bash
-   psql -h <主机地址> -p 5432 -U postgres -d gymcn
-   ```
+CloudBase CLI v3.4+ 支持 `tcb db execute` 命令，**GitHub Actions 会自动完成数据库初始化**。
 
-2. 执行初始化脚本：
-   ```bash
-   psql -h <主机地址> -p 5432 -U postgres -d gymcn -f database/migrations/001_init.sql
-   ```
+### 手动初始化（可选，仅首次）
 
-3. 验证表创建成功：
-   ```sql
-   \dt
-   ```
+如果你想在部署前先手动测试，可以本地执行：
+
+```bash
+# 安装 CloudBase CLI
+npm install -g @cloudbase/cli@latest
+
+# 登录
+tcb login
+
+# 执行 SQL 初始化
+tcb db execute -e <envId> --sql "CREATE TABLE IF NOT EXISTS users (...);"
+```
+
+### GitHub Actions 自动初始化
+
+**无需手动操作！** 每次 push 时：
+
+1. 检查 `venues` 表是否存在
+2. 不存在 → 自动执行建表 SQL + 插入示例数据
+3. 已存在 → 跳过初始化
 
 ---
 

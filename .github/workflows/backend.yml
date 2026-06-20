@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'database/**'
       - '.github/workflows/backend.yml'
 
 jobs:
@@ -35,15 +36,129 @@ jobs:
       
       # 4. 安装 CloudBase CLI
       - name: Install CloudBase CLI
-        run: npm install -g @cloudbase/cli
+        run: npm install -g @cloudbase/cli@latest
       
       # 5. 登录 CloudBase
       - name: Login to CloudBase
         run: tcb login --apiKeyId ${{ secrets.CLOUDBASE_SECRET_ID }} --apiKey ${{ secrets.CLOUDBASE_SECRET_KEY }}
       
-      # 6. 部署云函数
+      # 6. 检查数据库是否已初始化（通过检查 venues 表是否存在）
+      - name: Check if database is initialized
+        id: check_db
+        run: |
+          RESULT=$(tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'venues');" --json)
+          echo "Check result: $RESULT"
+          # 提取结果中的 exists 值
+          if echo "$RESULT" | grep -q '"exists":true'; then
+            echo "db_initialized=true" >> $GITHUB_OUTPUT
+          else
+            echo "db_initialized=false" >> $GITHUB_OUTPUT
+          fi
+      
+      # 7. 仅在数据库未初始化时执行 SQL 初始化
+      - name: Initialize database
+        if: steps.check_db.outputs.db_initialized == 'false'
+        run: |
+          echo "开始初始化数据库..."
+          
+          # 创建 users 表
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          CREATE TABLE IF NOT EXISTS users (
+              id BIGSERIAL PRIMARY KEY,
+              phone VARCHAR(20) NOT NULL UNIQUE,
+              nickname VARCHAR(50) DEFAULT NULL,
+              avatar VARCHAR(500) DEFAULT NULL,
+              user_type VARCHAR(20) DEFAULT 'personal',
+              enterprise_id BIGINT DEFAULT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              deleted SMALLINT DEFAULT 0
+          );" --json
+          
+          # 创建 venues 表
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          CREATE TABLE IF NOT EXISTS venues (
+              id BIGSERIAL PRIMARY KEY,
+              name VARCHAR(100) NOT NULL,
+              address VARCHAR(255) NOT NULL,
+              city VARCHAR(50) DEFAULT '广州',
+              district VARCHAR(50) DEFAULT NULL,
+              longitude DECIMAL(10, 6) DEFAULT NULL,
+              latitude DECIMAL(10, 6) DEFAULT NULL,
+              type VARCHAR(20) DEFAULT 'gym',
+              cover_image VARCHAR(500) DEFAULT NULL,
+              phone VARCHAR(20) DEFAULT NULL,
+              business_hours VARCHAR(100) DEFAULT NULL,
+              status VARCHAR(20) DEFAULT 'active',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              deleted SMALLINT DEFAULT 0
+          );" --json
+          
+          # 创建 enterprises 表
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          CREATE TABLE IF NOT EXISTS enterprises (
+              id BIGSERIAL PRIMARY KEY,
+              name VARCHAR(100) NOT NULL,
+              contact_person VARCHAR(50) DEFAULT NULL,
+              contact_phone VARCHAR(20) DEFAULT NULL,
+              address VARCHAR(255) DEFAULT NULL,
+              employee_count INT DEFAULT 0,
+              status VARCHAR(20) DEFAULT 'active',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              deleted SMALLINT DEFAULT 0
+          );" --json
+          
+          # 创建 membership_cards 表
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          CREATE TABLE IF NOT EXISTS membership_cards (
+              id BIGSERIAL PRIMARY KEY,
+              user_id BIGINT NOT NULL,
+              enterprise_id BIGINT DEFAULT NULL,
+              card_type VARCHAR(20) NOT NULL,
+              start_date DATE NOT NULL,
+              end_date DATE NOT NULL,
+              status VARCHAR(20) DEFAULT 'active',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              deleted SMALLINT DEFAULT 0
+          );" --json
+          
+          # 创建 checkin_records 表
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          CREATE TABLE IF NOT EXISTS checkin_records (
+              id BIGSERIAL PRIMARY KEY,
+              user_id BIGINT NOT NULL,
+              venue_id BIGINT NOT NULL,
+              checkin_time TIMESTAMP NOT NULL,
+              checkout_time TIMESTAMP DEFAULT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );" --json
+          
+          echo "表创建完成，插入示例数据..."
+          
+          # 插入示例场馆
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
+          INSERT INTO venues (name, address, city, district, type, business_hours, status) VALUES
+          ('威尔士健身（天河城店）', '天河区天河路208号天河城6楼', '广州', '天河区', 'gym', '06:00-23:00', 'active'),
+          ('超级猩猩健身（珠江新城店）', '天河区珠江新城花城大道88号', '广州', '天河区', 'gym', '07:00-22:00', 'active'),
+          ('一梵瑜伽工作室', '海珠区昌岗路江南坊2楼', '广州', '海珠区', 'yoga', '09:00-21:00', 'active'),
+          ('力健游泳馆', '番禺区大学城外环西路28号', '广州', '番禺区', 'swimming', '06:00-21:00', 'active'),
+          ('舒适堡健身（正佳广场店）', '天河区天河路228号正佳广场5楼', '广州', '天河区', 'gym', '10:00-22:00', 'active')
+          ON CONFLICT DO NOTHING;" --json
+          
+          echo "数据库初始化完成！"
+      
+      # 8. 验证数据库初始化
+      - name: Verify database initialization
+        if: steps.check_db.outputs.db_initialized == 'false'
+        run: |
+          echo "验证场馆数据..."
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM venues;" --json
+      
+      # 9. 部署云函数
       - name: Deploy to CloudBase
-        working-directory: ./backend
         run: |
           tcb fn deploy gymcn-backend \
             --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
@@ -51,9 +166,11 @@ jobs:
             --memorySize 256 \
             --timeout 60 \
             --handler "com.gymcn.GymcnApplication::main" \
-            --code ./target/gymcn-backend.jar \
-            --envVars "{\"POSTGRES_HOST\":\"${{ secrets.POSTGRES_HOST }}\",\"POSTGRES_PORT\":\"${{ secrets.POSTGRES_PORT }}\",\"POSTGRES_DATABASE\":\"${{ secrets.POSTGRES_DATABASE }}\",\"POSTGRES_USER\":\"${{ secrets.POSTGRES_USER }}\",\"POSTGRES_PASSWORD\":\"${{ secrets.POSTGRES_PASSWORD }}\"}"
+            --code ./backend/target/gymcn-backend.jar \
+            --envVars "{\"POSTGRES_HOST\":\"${{ secrets.PsOSTGRES_HOST }}\",\"POSTGRES_PORT\":\"${{ secrets.POSTGRES_PORT }}\",\"POSTGRES_DATABASE\":\"${{ secrets.POSTGRES_DATABASE }}\",\"POSTGRES_USER\":\"${{ secrets.POSTGRES_USER }}\",\"POSTGRES_PASSWORD\":\"${{ secrets.POSTGRES_PASSWORD }}\"}"
       
-      # 7. 输出部署结果
+      # 10. 输出部署结果
       - name: Show deployment result
-        run: tcb fn list --envId ${{ secrets.CLOUDBASE_ENV_ID }}
+        run: |
+          echo "云函数部署完成！"
+          tcb fn list --envId ${{ secrets.CLOUDBASE_ENV_ID }}
