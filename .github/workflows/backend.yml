@@ -157,41 +157,43 @@ jobs:
           echo "验证场馆数据..."
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM venues;" --json
       
-      # 9. 创建 cloudbaserc.json 配置文件（用于 tcb fn deploy）
+      # 9. 创建 cloudbaserc.json 配置文件
       - name: Create CloudBase config
         run: |
           cat > cloudbaserc.json << 'EOF'
           {
             "envId": "${{ secrets.CLOUDBASE_ENV_ID }}",
-            "functionRoot": "./functions",
             "functions": [
               {
                 "name": "gymcn-backend",
+                "runtime": "Java8",
                 "handler": "com.gymcn.GymcnApplication::main",
                 "timeout": 60,
                 "memorySize": 256,
-                "runtime": "Java8"
+                "codePath": "./backend/target/"
               }
             ]
           }
           EOF
       
-      # 10. 部署云函数
+      # 10. 创建启动脚本 scf_bootstrap（Java 云函数必须）
+      - name: Create scf_bootstrap
+        run: |
+          cat > backend/target/scf_bootstrap << 'EOF'
+          #!/bin/bash
+          /var/lang/java8/bin/java -jar gymcn-backend.jar
+          EOF
+          chmod +x backend/target/scf_bootstrap
+      
+      # 11. 部署云函数
       - name: Deploy to CloudBase
         run: |
-          # 创建函数目录
-          mkdir -p functions/gymcn-backend
-          
-          # 复制 jar 并重命名为函数名.jar（CloudBase 要求）
-          cp backend/target/gymcn-backend.jar functions/gymcn-backend/gymcn-backend.jar
-          
-          # 部署函数
           tcb fn deploy gymcn-backend \
-            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
+            --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
             --force \
             --yes
       
-      # 11. 输出部署结果
+      # 12. 输出部署结果
       - name: Show deployment result
         run: |
           echo "云函数部署完成！"
