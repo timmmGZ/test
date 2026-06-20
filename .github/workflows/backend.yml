@@ -193,9 +193,18 @@ jobs:
           }
           EOF
       
-      # 10. 部署云函数
+      # 10. 部署云函数（使用 tcb fn deploy）
       - name: Deploy to CloudBase
-        run: cloudbase framework deploy --template cloudbaserc.json
+        run: |
+          cd backend
+          tcb fn deploy gymcn-backend \
+            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
+            --dir ./ \
+            --handler com.gymcn.GymcnApplication::main \
+            --runtime Java8 \
+            --timeout 60 \
+            --force \
+            --yes
       
       # 11. 输出部署结果
       - name: Show deployment result
