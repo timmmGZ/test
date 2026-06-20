@@ -1,0 +1,59 @@
+# GymCN 后端 CI/CD 配置
+# GitHub Actions 自动部署到 CloudBase
+
+name: Deploy Backend to CloudBase
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # 2. 设置 JDK 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      
+      # 3. 构建项目
+      - name: Build with Maven
+        working-directory: ./backend
+        run: mvn clean package -DskipTests
+      
+      # 4. 安装 CloudBase CLI
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+      
+      # 5. 登录 CloudBase
+      - name: Login to CloudBase
+        run: tcb login --apiKeyId ${{ secrets.CLOUDBASE_SECRET_ID }} --apiKey ${{ secrets.CLOUDBASE_SECRET_KEY }}
+      
+      # 6. 部署云函数
+      - name: Deploy to CloudBase
+        working-directory: ./backend
+        run: |
+          tcb fn deploy gymcn-backend \
+            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
+            --runtime Java17 \
+            --memorySize 256 \
+            --timeout 60 \
+            --handler "com.gymcn.GymcnApplication::main" \
+            --code ./target/gymcn-backend.jar \
+            --envVars "{\"POSTGRES_HOST\":\"${{ secrets.POSTGRES_HOST }}\",\"POSTGRES_PORT\":\"${{ secrets.POSTGRES_PORT }}\",\"POSTGRES_DATABASE\":\"${{ secrets.POSTGRES_DATABASE }}\",\"POSTGRES_USER\":\"${{ secrets.POSTGRES_USER }}\",\"POSTGRES_PASSWORD\":\"${{ secrets.POSTGRES_PASSWORD }}\"}"
+      
+      # 7. 输出部署结果
+      - name: Show deployment result
+        run: tcb fn list --envId ${{ secrets.CLOUDBASE_ENV_ID }}

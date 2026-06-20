@@ -1,0 +1,55 @@
+server:
+  port: 80
+
+spring:
+  application:
+    name: gymcn-backend
+  
+  # PostgreSQL 数据库配置（CloudBase 云数据库）
+  # CloudBase 会自动注入环境变量
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:gymcn}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 600000
+  
+  # JPA 配置（PostgreSQL）
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.gymcn.models.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    com.gymcn: info
+    org.springframework: warn
+    org.hibernate: warn
+
+# CloudBase 云函数特定配置
+scf:
+  function-name: ${FC_FUNCTION_NAME:""}
+  memory-size: 256
+  timeout: 60

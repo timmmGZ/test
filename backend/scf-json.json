@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "region": "ap-guangzhou",
+  "scf": {
+    "timeout": 60,
+    "memorySize": 256,
+    "environment": {
+      "variables": {
+        "MYSQL_HOST": "${MYSQL_HOST}",
+        "MYSQL_PORT": "${MYSQL_PORT}",
+        "MYSQL_DATABASE": "${MYSQL_DATABASE}",
+        "MYSQL_USER": "${MYSQL_USER}",
+        "MYSQL_PASSWORD": "${MYSQL_PASSWORD}"
+      }
+    }
+  }
+}
