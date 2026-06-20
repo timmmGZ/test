@@ -179,9 +179,11 @@ jobs:
       # 10. 部署云函数
       - name: Deploy to CloudBase
         run: |
-          # 创建函数目录并复制 jar
+          # 创建函数目录
           mkdir -p functions/gymcn-backend
-          cp backend/target/gymcn-backend.jar functions/gymcn-backend/
+          
+          # 复制 jar 并重命名为函数名.jar（CloudBase 要求）
+          cp backend/target/gymcn-backend.jar functions/gymcn-backend/gymcn-backend.jar
           
           # 部署函数
           tcb fn deploy gymcn-backend \
