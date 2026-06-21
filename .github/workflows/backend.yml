@@ -42,12 +42,12 @@ jobs:
       - name: Login to CloudBase
         run: tcb login --apiKeyId ${{ secrets.CLOUDBASE_SECRET_ID }} --apiKey ${{ secrets.CLOUDBASE_SECRET_KEY }}
       
-      # 6. 检查数据库是否已初始化（通过检查数据库的 venues 表）
+      # 6. 检查数据库是否已初始化（通过检查 gymcn schema 的 venues 表）
       - name: Check if database is initialized
         id: check_db
         run: |
-          DB_NAME="${{ secrets.POSTGRES_DATABASE }}"
-          RESULT=$(tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT EXISTS (SELECT FROM ${DB_NAME}.venues WHERE TRUE);" --json 2>/dev/null || echo '{"exists": false}')
+          SCHEMA_NAME="${{ secrets.POSTGRES_SCHEMA }}"
+          RESULT=$(tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT EXISTS (SELECT FROM ${SCHEMA_NAME}.venues WHERE TRUE);" --json 2>/dev/null || echo '{"exists": false}')
           echo "Check result: $RESULT"
           if echo "$RESULT" | grep -q '"exists":true'; then
             echo "db_initialized=true" >> $GITHUB_OUTPUT
@@ -59,12 +59,15 @@ jobs:
       - name: Initialize database
         if: steps.check_db.outputs.db_initialized == 'false'
         run: |
-          DB_NAME="${{ secrets.POSTGRES_DATABASE }}"
-          echo "开始初始化数据库 ${DB_NAME}..."
+          SCHEMA_NAME="${{ secrets.POSTGRES_SCHEMA }}"
+          echo "开始初始化 schema: ${SCHEMA_NAME}..."
           
-          # 创建 users 表
+          # 先创建 gymcn schema
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "CREATE SCHEMA IF NOT EXISTS ${SCHEMA_NAME};" --json
+          
+          # 在 gymcn schema 中创建 users 表
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          CREATE TABLE IF NOT EXISTS ${DB_NAME}.users (
+          CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.users (
               id BIGSERIAL PRIMARY KEY,
               phone VARCHAR(20) NOT NULL UNIQUE,
               nickname VARCHAR(50) DEFAULT NULL,
@@ -76,9 +79,9 @@ jobs:
               deleted SMALLINT DEFAULT 0
           );" --json
           
-          # 创建 venues 表
+          # 在 gymcn schema 中创建 venues 表
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          CREATE TABLE IF NOT EXISTS ${DB_NAME}.venues (
+          CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.venues (
               id BIGSERIAL PRIMARY KEY,
               name VARCHAR(100) NOT NULL,
               address VARCHAR(255) NOT NULL,
@@ -96,9 +99,9 @@ jobs:
               deleted SMALLINT DEFAULT 0
           );" --json
           
-          # 创建 enterprises 表
+          # 在 gymcn schema 中创建 enterprises 表
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          CREATE TABLE IF NOT EXISTS ${DB_NAME}.enterprises (
+          CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.enterprises (
               id BIGSERIAL PRIMARY KEY,
               name VARCHAR(100) NOT NULL,
               contact_person VARCHAR(50) DEFAULT NULL,
@@ -111,9 +114,9 @@ jobs:
               deleted SMALLINT DEFAULT 0
           );" --json
           
-          # 创建 membership_cards 表
+          # 在 gymcn schema 中创建 membership_cards 表
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          CREATE TABLE IF NOT EXISTS ${DB_NAME}.membership_cards (
+          CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.membership_cards (
               id BIGSERIAL PRIMARY KEY,
               user_id BIGINT NOT NULL,
               enterprise_id BIGINT DEFAULT NULL,
@@ -126,9 +129,9 @@ jobs:
               deleted SMALLINT DEFAULT 0
           );" --json
           
-          # 创建 checkin_records 表
+          # 在 gymcn schema 中创建 checkin_records 表
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          CREATE TABLE IF NOT EXISTS ${DB_NAME}.checkin_records (
+          CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.checkin_records (
               id BIGSERIAL PRIMARY KEY,
               user_id BIGINT NOT NULL,
               venue_id BIGINT NOT NULL,
@@ -139,9 +142,9 @@ jobs:
           
           echo "表创建完成，插入示例数据..."
           
-          # 插入示例场馆
+          # 插入示例场馆到 gymcn schema
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "
-          INSERT INTO ${DB_NAME}.venues (name, address, city, district, type, business_hours, status) VALUES
+          INSERT INTO ${SCHEMA_NAME}.venues (name, address, city, district, type, business_hours, status) VALUES
           ('威尔士健身（天河城店）', '天河区天河路208号天河城6楼', '广州', '天河区', 'gym', '06:00-23:00', 'active'),
           ('超级猩猩健身（珠江新城店）', '天河区珠江新城花城大道88号', '广州', '天河区', 'gym', '07:00-22:00', 'active'),
           ('一梵瑜伽工作室', '海珠区昌岗路江南坊2楼', '广州', '海珠区', 'yoga', '09:00-21:00', 'active'),
@@ -155,9 +158,9 @@ jobs:
       - name: Verify database initialization
         if: steps.check_db.outputs.db_initialized == 'false'
         run: |
-          DB_NAME="${{ secrets.POSTGRES_DATABASE }}"
+          SCHEMA_NAME="${{ secrets.POSTGRES_SCHEMA }}"
           echo "验证场馆数据..."
-          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM ${DB_NAME}.venues;" --json
+          tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM ${SCHEMA_NAME}.venues;" --json
       
       # 9. 创建 cloudbaserc.json 配置文件
       - name: Create CloudBase config
@@ -176,7 +179,7 @@ jobs:
                 "envVariables": {
                   "POSTGRES_HOST": "${{ secrets.POSTGRES_HOST }}",
                   "POSTGRES_PORT": "${{ secrets.POSTGRES_PORT }}",
-                  "POSTGRES_DATABASE": "${{ secrets.POSTGRES_DATABASE }}",
+                  "POSTGRES_SCHEMA": "${{ secrets.POSTGRES_SCHEMA }}",
                   "POSTGRES_USER": "${{ secrets.POSTGRES_USER }}",
                   "POSTGRES_PASSWORD": "${{ secrets.POSTGRES_PASSWORD }}"
                 }
