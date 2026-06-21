@@ -32,7 +32,12 @@ jobs:
       # 3. 构建项目
       - name: Build with Maven
         working-directory: ./backend
-        run: mvn clean package -DskipTests
+        run: |
+          mvn clean package -DskipTests
+          echo "=== Maven 打包完成，target 目录内容 ==="
+          ls -la target/
+          echo "=== 查找 jar 文件 ==="
+          find target/ -name "*.jar" -type f
       
       # 4. 安装 CloudBase CLI
       - name: Install CloudBase CLI
