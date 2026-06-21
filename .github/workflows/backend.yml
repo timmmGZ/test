@@ -201,12 +201,9 @@ jobs:
           ls -la
           echo "=== functions 目录 ==="
           ls -la functions/
-          ls -la functions/gymcn-backend/
+          
           tcb fn deploy gymcn-backend \
             --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
-            --dir ./functions/gymcn-backend \
-            --runtime Java8 \
-            --handler com.gymcn.GymcnApplication::main \
             --force \
             --yes
       
