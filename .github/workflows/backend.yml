@@ -201,7 +201,10 @@ jobs:
           ls -la
           echo "=== functions 目录 ==="
           ls -la functions/
-          
+          # 在部署步骤之前添加
+          echo "=== 检查 cloudbaserc.json ==="
+          cat cloudbaserc.json
+          ls -la cloudbaserc.json
           tcb fn deploy gymcn-backend \
             --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
             --force \
