@@ -5,8 +5,7 @@
       "name": "gymcn-backend",
       "type": "HTTP",
       "runtime": "Java8",
-      "functionDistPath": "./functions/gymcn-backend.zip",
-      "handler": "index.main"
+      "functionDistPath": "./functions/gymcn-backend.zip"
     }
   ]
 }
