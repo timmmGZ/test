@@ -168,27 +168,27 @@ jobs:
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM ${SCHEMA_NAME}.venues;" --json
       
       # 9. 部署云函数
-      - name: Deploy to CloudBase
+      - name: Deploy Cloud Function
         run: |
-          # 1. 复制 jar 文件到函数目录
+          # 1. 准备函数目录
           mkdir -p functions/gymcn-backend
           cp backend/target/gymcn-backend.jar functions/gymcn-backend/
           
-          # 2. 创建启动脚本 scf_bootstrap
+          # 2. 启动脚本（加 -Dserver.port=9000）
           cat > functions/gymcn-backend/scf_bootstrap << 'EOF'
           #!/bin/bash
-          /var/lang/java8/bin/java -jar gymcn-backend.jar
+          /var/lang/java8/bin/java -Dserver.port=9000 -jar gymcn-backend.jar
           EOF
           chmod +x functions/gymcn-backend/scf_bootstrap
           
-          # 3. 调试：列出函数目录内容
-          echo "=== functions/gymcn-backend 目录内容 ==="
-          ls -la functions/gymcn-backend/
+          # 3. ⬇️ 关键：打成 ZIP，注意是打包目录内的文件，不包含目录本身
+          cd functions/gymcn-backend
+          zip -r ../gymcn-backend.zip ./*
+          cd ../..
           
-          # 4. 部署云函数
+          # 4. 部署
           tcb fn deploy gymcn-backend \
-            --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
-            --dir ./functions/gymcn-backend \
+            --env-id ${{ secrets.TCB_ENV_ID }} \
             --force \
             --yes
       
