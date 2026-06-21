@@ -201,7 +201,6 @@ jobs:
             --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
             --dir ./functions/gymcn-backend \
             --runtime Java8 \
-            --timeout 60 \
             --force \
             --yes
       
