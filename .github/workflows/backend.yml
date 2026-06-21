@@ -204,11 +204,11 @@ jobs:
           ls -la functions/gymcn-backend/
           tcb fn deploy gymcn-backend \
             --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
-            --path ./functions/gymcn-backend/gymcn-backend.jar \
+            --dir ./functions/gymcn-backend \
             --runtime Java8 \
+            --handler com.gymcn.GymcnApplication::main \
             --force \
             --yes
-      
       
       # 12. 输出部署结果
       - name: Show deployment result
