@@ -3,10 +3,11 @@
   "functions": [
     {
       "name": "gymcn-backend",
-      "codePath": "./functions/gymcn-backend",
       "runtime": "Java8",
-      "handler": "index.main",
-      "timeout": 60
+      "handler": "com.gymcn.GymcnApplication::main",
+      "timeout": 60,
+      "memorySize": 256,
+      "functionDistPath": "./functions/gymcn-backend/gymcn-backend.jar"
     }
   ]
 }
