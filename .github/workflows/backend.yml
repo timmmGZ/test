@@ -167,50 +167,31 @@ jobs:
           echo "验证场馆数据..."
           tcb db execute -e ${{ secrets.CLOUDBASE_ENV_ID }} --sql "SELECT id, name, city, type FROM ${SCHEMA_NAME}.venues;" --json
       
-      # 9. 创建函数目录和启动脚本
-      - name: Prepare function directory
+      # 9. 部署云函数
+      - name: Deploy to CloudBase
         run: |
-          # 创建函数目录
+          # 1. 复制 jar 文件到函数目录
           mkdir -p functions/gymcn-backend
-          
-          # 列出 target 目录内容（调试）
-          echo "=== target 目录内容 ==="
-          ls -la backend/target/
-          
-          # 复制 jar 文件到函数目录
           cp backend/target/gymcn-backend.jar functions/gymcn-backend/
           
-          # 创建启动脚本 scf_bootstrap（Java 云函数必须）
+          # 2. 创建启动脚本 scf_bootstrap
           cat > functions/gymcn-backend/scf_bootstrap << 'EOF'
           #!/bin/bash
           /var/lang/java8/bin/java -jar gymcn-backend.jar
           EOF
           chmod +x functions/gymcn-backend/scf_bootstrap
           
-          # 列出函数目录内容（调试）
+          # 3. 调试：列出函数目录内容
           echo "=== functions/gymcn-backend 目录内容 ==="
           ls -la functions/gymcn-backend/
-      
-      # 10. 部署云函数
-      - name: Deploy to CloudBase
-        run: |
-          # 列出当前目录结构（调试）
-          echo "=== 当前目录 ==="
-          pwd
-          echo "=== 根目录内容 ==="
-          ls -la
-          echo "=== functions 目录 ==="
-          ls -la functions/
-          # 在部署步骤之前添加
-          echo "=== 检查 cloudbaserc.json ==="
-          cat cloudbaserc.json
-          ls -la cloudbaserc.json
+          
+          # 4. 部署云函数
           tcb fn deploy gymcn-backend \
             --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
             --force \
             --yes
       
-      # 12. 输出部署结果
+      # 10. 输出部署结果
       - name: Show deployment result
         run: |
           echo "云函数部署完成！"
