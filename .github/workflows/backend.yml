@@ -188,7 +188,7 @@ jobs:
           
           # 4. 部署
           tcb fn deploy gymcn-backend \
-            --env-id ${{ secrets.TCB_ENV_ID }} \
+            --env-id ${{ secrets.CLOUDBASE_ENV_ID }}  \
             --force \
             --yes
       
