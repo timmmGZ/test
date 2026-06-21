@@ -1,0 +1,12 @@
+{
+  "envId": "${{ secrets.CLOUDBASE_ENV_ID }}",
+  "functions": [
+    {
+      "name": "gymcn-backend",
+      "codePath": "./functions/gymcn-backend",
+      "runtime": "Java8",
+      "handler": "index.main",
+      "timeout": 60
+    }
+  ]
+}
