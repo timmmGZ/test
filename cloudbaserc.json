@@ -3,6 +3,8 @@
   "functions": [
     {
       "name": "gymcn-backend",
+      "runtime": "CustomRuntime",
+      "type": "web",
       "timeout": 60,
       "memorySize": 256
     }
