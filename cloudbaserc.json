@@ -1,0 +1,10 @@
+{
+  "envId": "${{ secrets.CLOUDBASE_ENV_ID }}",
+  "functions": [
+    {
+      "name": "gymcn-backend",
+      "timeout": 60,
+      "memorySize": 256
+    }
+  ]
+}
