@@ -3,10 +3,10 @@
   "functions": [
     {
       "name": "gymcn-backend",
-      "runtime": "CustomRuntime",
       "type": "HTTP",
-      "timeout": 60,
-      "memorySize": 256
+      "runtime": "Java8",
+      "functionDistPath": "./functions/gymcn-backend.zip",
+      "handler": "index.main"
     }
   ]
 }
