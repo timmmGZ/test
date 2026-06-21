@@ -188,9 +188,11 @@ jobs:
           
           # 4. 部署
           tcb fn deploy gymcn-backend \
-            --env-id ${{ secrets.CLOUDBASE_ENV_ID }}  \
-            --force \
-            --yes
+              --env-id ${{ secrets.CLOUDBASE_ENV_ID }} \
+              --timeout 60 \
+              --memory-size 256 \
+              --force \
+              --yes
       
       # 10. 输出部署结果
       - name: Show deployment result
