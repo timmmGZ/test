@@ -194,6 +194,10 @@ jobs:
           # 创建函数目录
           mkdir -p functions/gymcn-backend
           
+          # 列出 target 目录内容（调试）
+          echo "=== target 目录内容 ==="
+          ls -la backend/target/
+          
           # 复制 jar 文件到函数目录
           cp backend/target/gymcn-backend.jar functions/gymcn-backend/
           
@@ -203,6 +207,10 @@ jobs:
           /var/lang/java8/bin/java -jar gymcn-backend.jar
           EOF
           chmod +x functions/gymcn-backend/scf_bootstrap
+          
+          # 列出函数目录内容（调试）
+          echo "=== functions/gymcn-backend 目录内容 ==="
+          ls -la functions/gymcn-backend/
       
       # 11. 部署云函数
       - name: Deploy to CloudBase
