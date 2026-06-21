@@ -29,6 +29,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <!-- Spring Cloud Function 版本（CloudBase 兼容） -->
         <spring-cloud-function.version>4.1.0</spring-cloud-function.version>
+        <!-- JAR 文件名 -->
+        <finalName>gymcn-backend</finalName>
     </properties>
 
 
